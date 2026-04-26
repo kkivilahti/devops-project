@@ -121,6 +121,8 @@ To run the application, you need a PostgreSQL database. The easiest way to set u
 
 The [image documentation](https://hub.docker.com/_/postgres) provides detailed information and examples on how to use the image, but here are quick examples on how to start a PostgreSQL container with a username, password, and database name and map it to the local port 5432:
 
+If you already have PostgreSQL installed locally, port 5432 may already be in use. In that case, stop the local service or map Docker to another host port such as 5433 and update `DATABASE_URL` to match.
+
 
 ```bash
 # Powershell
