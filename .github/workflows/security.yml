@@ -1,0 +1,69 @@
+name: "Security"
+
+on:
+  push:
+    branches: main
+  pull_request:
+    branches: main
+  schedule:
+    - cron: '0 9 * * 1'
+
+jobs:
+  security-check:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }}
+    permissions:
+      security-events: write
+      packages: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - language: actions
+          build-mode: none
+        - language: javascript-typescript
+          build-mode: manual
+          
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22
+        cache: npm
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v4
+      with:
+        languages: ${{ matrix.language }}
+        build-mode: ${{ matrix.build-mode }}
+
+    - name: Install dependencies
+      run: npm run install:all
+
+    - name: Audit root dependencies
+      continue-on-error: true
+      run: npm audit --audit-level=moderate
+
+    - name: Audit backend dependencies
+      continue-on-error: true
+      working-directory: ./backend
+      run: npm audit --audit-level=moderate
+
+    - name: Audit frontend dependencies
+      continue-on-error: true
+      working-directory: ./frontend
+      run: npm audit --audit-level=moderate
+    
+    - name: Build app
+      run: |
+        npm run build:backend
+        npm run build:frontend
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v4
+      with:
+        category: "/language:${{matrix.language}}"
