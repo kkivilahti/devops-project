@@ -1,67 +1,61 @@
-name: "Security"
+name: Security
 
 on:
   push:
     branches: main
   pull_request:
     branches: main
-  schedule:
-    - cron: '0 9 * * 1'
 
 jobs:
-  security-check:
-    name: Analyze (${{ matrix.language }})
-    runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }}
+  codeql:
+    name: CodeQL analysis
+    runs-on: ubuntu-latest
     permissions:
       security-events: write
       packages: read
 
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-        - language: javascript-typescript
-          build-mode: none
-          
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Setup Node
-      uses: actions/setup-node@v4
-      with:
-        node-version: 22
-        cache: npm
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: javascript-typescript
+          build-mode: none
 
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v4
-      with:
-        languages: ${{ matrix.language }}
-        build-mode: ${{ matrix.build-mode }}
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: '/language:javascript-typescript'
 
-    - name: Install dependencies
-      run: npm run install:all
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
 
-    - name: Audit root dependencies
-      continue-on-error: true
-      run: npm audit --audit-level=moderate
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Audit backend dependencies
-      continue-on-error: true
-      working-directory: ./backend
-      run: npm audit --audit-level=moderate
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
 
-    - name: Audit frontend dependencies
-      continue-on-error: true
-      working-directory: ./frontend
-      run: npm audit --audit-level=moderate
-    
-    - name: Build app
-      run: |
-        npm run build:backend
-        npm run build:frontend
+      - name: Install dependencies
+        run: npm run install:all
 
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v4
-      with:
-        category: "/language:${{matrix.language}}"
+      - name: Audit root dependencies
+        continue-on-error: true
+        run: npm audit --audit-level=moderate
+
+      - name: Audit backend dependencies
+        continue-on-error: true
+        working-directory: ./backend
+        run: npm audit --audit-level=moderate
+
+      - name: Audit frontend dependencies
+        continue-on-error: true
+        working-directory: ./frontend
+        run: npm audit --audit-level=moderate
