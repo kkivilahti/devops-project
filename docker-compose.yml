@@ -1,0 +1,54 @@
+# Docker compose using pre-built images from Docker Hub
+
+# ==============================
+# Before running, make sure to:
+# 1. Create .env file in project root with POSTGRES_USER and POSTGRES_PASSWORD values
+# Note: the values should match the values in backend/.env DATABASE_URL
+#
+# 2. Create backend/.env (see backend/.env.example for reference)
+# Note: DATABASE_URL should point to postgres (postgres:5432/taskmanagement), not localhost
+#
+# Then run with command:
+# docker compose up -d
+#
+# Please note that if you have used the development version of docker compose before,
+# you might have to remove the old containers and volumes before running this version:
+# docker compose down -v
+# Otherwise, the old containers/volumes will still be used. You might, for example, use the same database.
+# ==============================
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: database
+    ports:
+      - 5433:5432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    env_file: .env
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=taskmanagement
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 1s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    image: kirsik/task-manager-backend:latest
+    ports:
+      - 5000:5000
+    env_file: ./backend/.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+  
+  frontend:
+    image: kirsik/task-manager-frontend:latest
+    ports:
+      - 8080:80
+
+volumes:
+  postgres_data:

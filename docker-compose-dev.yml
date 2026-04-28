@@ -1,0 +1,39 @@
+# Docker compose using local builds of backend and frontend
+# See docker-compose.yml for instructions on running the compose files
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: database
+    ports:
+      - 5433:5432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    env_file: .env
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=taskmanagement
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 1s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    ports:
+      - 5000:5000
+    env_file: ./backend/.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    
+  frontend:
+    build: ./frontend
+    ports:
+      - 5173:80
+    env_file: ./frontend/.env
+
+volumes:
+  postgres_data:
