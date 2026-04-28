@@ -70,11 +70,12 @@ jobs:
 
       - name: Build and push frontend image
         working-directory: ./frontend
-        env:
-          VITE_API_URL: ${{ secrets.VITE_API_URL}}
         run: |
-          docker build -t kirsik/task-manager-frontend:latest .
+          docker build --build-arg VITE_API_URL=${{ secrets.VITE_API_URL }} -t kirsik/task-manager-frontend:latest .
           docker push kirsik/task-manager-frontend:latest
 
-      - name: Deploy to Render
-        run: curl ${{ secrets.RENDER_DEPLOY_HOOK }}
+      - name: Deploy backend on Render
+        run: curl ${{ secrets.RENDER_DEPLOY_HOOK_BACKEND }}
+
+      - name: Deploy frontend on Render
+        run: curl ${{ secrets.RENDER_DEPLOY_HOOK_FRONTEND }}
